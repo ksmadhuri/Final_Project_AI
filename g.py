@@ -42,16 +42,8 @@ def collision_with_self(snake_position):
     else:
         return False
 
-def collision_with_food(snake_head, food_position):
-    if snake_head == food_position:
-        return True
-    else:
-        return False
-
-#def collision_with_apple(apple_position, score):
-    #apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
-    #score += 1
-    #return apple_position, score
+def generate_new_food_position():
+    return [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
 
 def display_final_score(display_text, final_score):
     largeText = pygame.font.Font('freesansbold.ttf', 35)
@@ -96,14 +88,14 @@ while running:
 
     # Move snake
     snake_position.insert(0, list(snake_head))
-    if collision_with_food(snake_head, food_position):
-        food_position, score = collision_with_apple(food_position, score)
+    if snake_head == food_position:
+        food_position = generate_new_food_position()
+        score += 1
     else:
         snake_position.pop()
 
     # Check for collisions
     if collision_with_boundaries(snake_head) or collision_with_self(snake_position):
-        display_final_score("Game Over! Final Score: {}".format(score), score)
         running = False
 
     # Display snake
@@ -116,6 +108,8 @@ while running:
     pygame.display.flip()
     clock.tick(10)
 
-pygame.quit()
+# Display final score
+display_final_score("Game Over! Final Score: {}".format(score), score)
 
+pygame.quit()
 
