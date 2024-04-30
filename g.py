@@ -48,10 +48,10 @@ def collision_with_food(snake_head, food_position):
     else:
         return False
 
-def collision_with_apple(apple_position, score):
-    apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
-    score += 1
-    return apple_position, score
+#def collision_with_apple(apple_position, score):
+    #apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
+    #score += 1
+    #return apple_position, score
 
 def display_final_score(display_text, final_score):
     largeText = pygame.font.Font('freesansbold.ttf', 35)
