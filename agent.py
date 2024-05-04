@@ -22,10 +22,10 @@ class GameAgent:
 
     def extract_state(self, game):
         head = game.snake[0]
-        left_point = Point(head.x - 20, head.y)
-        right_point = Point(head.x + 20, head.y)
-        up_point = Point(head.x, head.y - 20)
-        down_point = Point(head.x, head.y + 20)
+        left_point = [head[0] - 20, head[1]]
+        right_point = [head[0] + 20, head[1]]
+        up_point = [head[0], head[1] - 20]
+        down_point = [head[0], head[1] + 20]
 
         dir_left = game.direction == Direction.LEFT
         dir_right = game.direction == Direction.RIGHT
