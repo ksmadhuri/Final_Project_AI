@@ -8,7 +8,7 @@ from helper import plot
 
 MAX_HISTORY = 100_000
 SAMPLE_SIZE = 1000
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
 
 class GameAgent:
 
