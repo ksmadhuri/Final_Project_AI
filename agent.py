@@ -2,7 +2,7 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from game import SnakeGameAI, Direction, Point
+from game import SnakeGame, Direction, Point
 from model import QNetModel, QLearningTrainer
 from helper import plot
 
@@ -18,10 +18,10 @@ class GameAgent:
         self.discount_factor = 0.9  # Discount rate for future rewards
         self.memory = deque(maxlen=MAX_HISTORY)  # automatic memory management
         self.q_net = QNetModel(11, 256, 3)
-        self.q_trainer = QLearningTrainer(self.q_net, lr=LEARNING_RATE, discount_factor=self.discount_factor)
+        self.q_trainer = QLearningTrainer(self.q_net, learning_rate=LEARNING_RATE, discount_factor=self.discount_factor)
 
     def extract_state(self, game):
-        head = game.snake[0]
+        head = game.snake_position[0]
         left_point = [head[0] - 20, head[1]]
         right_point = [head[0] + 20, head[1]]
         up_point = [head[0], head[1] - 20]
@@ -31,34 +31,39 @@ class GameAgent:
         dir_right = game.direction == Direction.RIGHT
         dir_up = game.direction == Direction.UP
         dir_down = game.direction == Direction.DOWN
+        
+        # Function to check if the next point is dangerous
+        def is_dangerous(point):
+            return (game.collision_with_boundaries(point) or 
+                game.collision_with_self(point))
 
         state_vector = [
             # Immediate dangers
-            (dir_right and game.is_collision(right_point)) or 
-            (dir_left and game.is_collision(left_point)) or 
-            (dir_up and game.is_collision(up_point)) or 
-            (dir_down and game.is_collision(down_point)),
+            (dir_right and is_dangerous(right_point)) or 
+            (dir_left and is_dangerous(left_point)) or 
+            (dir_up and is_dangerous(up_point)) or 
+            (dir_down and is_dangerous(down_point)),
 
             # Right-side dangers
-            (dir_up and game.is_collision(right_point)) or 
-            (dir_down and game.is_collision(left_point)) or 
-            (dir_left and game.is_collision(up_point)) or 
-            (dir_right and game.is_collision(down_point)),
+            (dir_up and is_dangerous(right_point)) or 
+            (dir_down and is_dangerous(left_point)) or 
+            (dir_left and is_dangerous(up_point)) or 
+            (dir_right and is_dangerous(down_point)),
 
             # Left-side dangers
-            (dir_down and game.is_collision(right_point)) or 
-            (dir_up and game.is_collision(left_point)) or 
-            (dir_right and game.is_collision(up_point)) or 
-            (dir_left and game.is_collision(down_point)),
+            (dir_down and is_dangerous(right_point)) or 
+            (dir_up and is_dangerous(left_point)) or 
+            (dir_right and is_dangerous(up_point)) or 
+            (dir_left and is_dangerous(down_point)),
             
             # Current direction
             dir_left, dir_right, dir_up, dir_down,
             
             # Food location relative to head
-            game.food.x < head.x,  # Food on the left
-            game.food.x > head.x,  # Food on the right
-            game.food.y < head.y,  # Food above
-            game.food.y > head.y   # Food below
+            game.food_position[0] < head[0],  # Food on the left
+            game.food_position[0] > head[0],  # Food on the right
+            game.food_position[1] < head[1],  # Food above
+            game.food_position[1] > head[1]   # Food below
             ]
 
         return np.array(state_vector, dtype=int)
@@ -100,7 +105,7 @@ def run_training_loop():
     total_score = 0
     best_score = 0
     agent = GameAgent()
-    game = SnakeGameAI()
+    game = SnakeGame()
     while True:
         current_state = agent.extract_state(game)
         action = agent.decide_action(current_state)

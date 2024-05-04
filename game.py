@@ -36,10 +36,10 @@ class Direction(Enum):
     UP = 'UP'
     DOWN = 'DOWN'
 
-#class Point:
-    #def __init__(self, x, y):
-        #self.x = x
-        #self.y = y
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 class SnakeGame:
     
@@ -66,16 +66,20 @@ class SnakeGame:
     
         
         # Functions for game logic
-    def collision_with_boundaries(self):
-        if (self.snake[0] >= self.width or self.snake[0] < 0 or
-        self.snake[1] >= self.height or self.snake[1] < 0):
+    def collision_with_boundaries(self, pt = None):
+        if pt is None:
+            pt = self.snake
+        if (pt[0] >= self.width or pt[0] < 0 or
+        pt[1] >= self.height or pt[1] < 0):
             return True
         else:
             return False
 
-    def collision_with_self(self):
-        self.snake = self.snake_position[0]
-        if self.snake in self.snake_position[1:]:
+    def collision_with_self(self, pt = None):
+        #self.snake = self.snake_position[0]
+        if pt is None:
+            pt = self.snake
+        if pt in self.snake_position[1:]:
             return True
         else:
             return False
