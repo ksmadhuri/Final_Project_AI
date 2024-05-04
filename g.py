@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 from enum import Enum
+import numpy as np
 
 pygame.init()
 font = pygame.font.SysFont('arial', 25)
@@ -35,14 +36,14 @@ class Direction(Enum):
     UP = 'UP'
     DOWN = 'DOWN'
 
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+#class Point:
+    #def __init__(self, x, y):
+        #self.x = x
+        #self.y = y
 
 class SnakeGame:
     
-    def __int__(self, width = 500, height = 500):
+    def __init__(self, width = 500, height = 500):
         self.width = width
         self.height = height
         self.display = pygame.display.set_mode((self.width, self.height))
@@ -60,8 +61,8 @@ class SnakeGame:
         self.frame_iteration = 0
         
     def generate_new_food_position(self):
-        if self.food_position in self.snake:
-            self.generate_new_food_position
+        if self.food_position in self.snake_position:
+            self.generate_new_food_position()
     
         
         # Functions for game logic
