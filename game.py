@@ -56,11 +56,13 @@ class SnakeGame:
         self.snake = [self.width/2, self.height/2]
         self.snake_position = [[self.width/2, self.height/2], [self.width/2, self.height/2], [self.width/2, self.height/2]]
         self.score = 0
-        self.food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
+        self.food_position = None
+        #self.food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
         self.generate_new_food_position()
         self.frame_iteration = 0
         
     def generate_new_food_position(self):
+        self.food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
         if self.food_position in self.snake_position:
             self.generate_new_food_position()
     

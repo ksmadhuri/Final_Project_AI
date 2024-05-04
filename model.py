@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as functional
 import os
+import numpy as np
 
 class QNetModel(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
@@ -33,10 +34,24 @@ class QLearningTrainer:
         self.loss_function = nn.MSELoss()
 
     def update(self, current_state, chosen_action, reward_received, next_state, terminal):
-        current_state = torch.tensor(current_state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        chosen_action = torch.tensor(chosen_action, dtype=torch.long)
-        reward_received = torch.tensor(reward_received, dtype=torch.float)
+        # Ensure that inputs are numpy arrays to allow efficient conversion to tensors
+        current_state = np.array(current_state, dtype=np.float32)
+        next_state = np.array(next_state, dtype=np.float32)
+        chosen_action = np.array(chosen_action, dtype=np.int64)
+        reward_received = np.array(reward_received, dtype=np.float32)
+        terminal = np.array(terminal, dtype=np.bool_)
+
+        # Convert numpy arrays to tensors
+        current_state = torch.tensor(current_state)
+        next_state = torch.tensor(next_state)
+        chosen_action = torch.tensor(chosen_action)
+        reward_received = torch.tensor(reward_received)
+        terminal = torch.tensor(terminal)
+        
+        #current_state = torch.tensor(current_state, dtype=torch.float)
+        #next_state = torch.tensor(next_state, dtype=torch.float)
+        #chosen_action = torch.tensor(chosen_action, dtype=torch.long)
+        #reward_received = torch.tensor(reward_received, dtype=torch.float)
         
         if current_state.dim() == 1:
             current_state = current_state.unsqueeze(0)
