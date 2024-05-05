@@ -14,10 +14,10 @@ class Agent:
         """
         self.n_games = 0
         self.epsilon = CNST.EPSILON
-        self.gamma = CNST.GAMMA
+        self.discount_factor = CNST.GAMMA
         self.memory = deque(maxlen=CNST.MAX_MEMORY) # popleft()
         self.model = DeepQNNet(CNST.INPUT_SIZE, CNST.HIDDEN_SIZE, CNST.OUTPUT_SIZE)
-        self.trainer = DeepQTraining(self.model, lr=CNST.LR, gamma=self.gamma)
+        self.trainer = DeepQTraining(self.model, learning_rate=CNST.LR, discount_factor=self.discount_factor)
 
 
     def get_state(self, game):
