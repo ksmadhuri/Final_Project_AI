@@ -1,148 +1,151 @@
 import pygame
 import random
-import time
-from enum import Enum
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import os
+import constants as CNST
 
 pygame.init()
 font = pygame.font.SysFont('arial', 25)
 
-# Constants
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLACK = (0, 0, 0)
-GRID_SIZE = 10
-SPEED = 80
-#DISPLAY_WIDTH = 500
-#DISPLAY_HEIGHT = 500
+class SnakeGameInterface:
+    """_summary_
+    """
 
-# Snake and food positions
-#snake_head = [250, 250]
-#snake_position = [[250, 250], [240, 250], [230, 250]]
-#food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
+    def __init__(self, width=CNST.WIDTH, height=CNST.HEIGHT):
+        """_summary_
 
-# Initialize game display
-#display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
-#clock = pygame.time.Clock()
-
-# Game settings
-#score = 0
-prev_button_direction = 1  # Default to moving right
-button_direction = 1
-
-class Direction(Enum):
-    RIGHT = 'RIGHT'
-    LEFT = 'LEFT'
-    UP = 'UP'
-    DOWN = 'DOWN'
-
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-class SnakeGame:
-    
-    def __init__(self, width = 500, height = 500):
+        Args:
+            width (_type_, optional): _description_. Defaults to CNST.WIDTH.
+            height (_type_, optional): _description_. Defaults to CNST.HEIGHT.
+        """
         self.width = width
         self.height = height
+        # init display
         self.display = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption('Snake')
         self.clock = pygame.time.Clock()
-        self.reset()
-        
-    
-    def reset(self):
-        self.direction = Direction.RIGHT
-        self.snake = [self.width/2, self.height/2]
-        self.snake_position = [[self.width/2, self.height/2], [self.width/2, self.height/2], [self.width/2, self.height/2]]
+        self.game_rest()
+
+
+    def game_rest(self):
+        """_summary_
+        """
+        # init game state
+        self.direction = CNST.Direction.RIGHT
+
+        self.head = CNST.Point(self.width/2, self.height/2)
+        self.snake = [CNST.Point(self.head.x-CNST.GRID_SIZE, self.head.y),
+                      CNST.Point(self.head.x-(2*CNST.GRID_SIZE), self.head.y)]
+
         self.score = 0
-        self.food_position = None
-        #self.food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
-        self.generate_new_food_position()
+        self.food = None
+        self.food_placement()
         self.frame_iteration = 0
-        
-    def generate_new_food_position(self):
-        self.food_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
-        if self.food_position in self.snake_position:
-            self.generate_new_food_position()
-    
-        
-        # Functions for game logic
-    def collision_with_boundaries(self, pt = None):
-        if pt is None:
-            pt = self.snake
-        if (pt[0] >= self.width or pt[0] < 0 or
-        pt[1] >= self.height or pt[1] < 0):
-            return True
-        else:
-            return False
 
-    def collision_with_self(self, pt = None):
-        #self.snake = self.snake_position[0]
-        if pt is None:
-            pt = self.snake
-        if pt in self.snake_position[1:]:
-            return True
-        else:
-            return False
-        
 
-    def play_step(self,action):
+    def food_placement(self):
+        """_summary_
+        """
+        x = random.randint(0, (self.width-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
+        y = random.randint(0, (self.height-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
+        self.food = CNST.Point(x, y)
+        if self.food in self.snake:
+            self.food_placement()
+
+
+    def game_play(self, action):
+        """_summary_
+
+        Args:
+            action (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         self.frame_iteration += 1
-        # Event handling
+        # 1. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-       
-       # 2. move
-        self.move(action) # update the head
-        self.snake_position.insert(0, self.snake)
+        
+        # 2. move
+        self.game_move(action) # update the head
+        self.snake.insert(0, self.head)
         
         # 3. check if game over
         reward = 0
         game_over = False
-        if self.collision_with_boundaries() or self.collision_with_self() or self.frame_iteration > 100*len(self.snake):
+        if self.collision_chk() or self.frame_iteration > 100*len(self.snake):
             game_over = True
             reward = -10
             return reward, game_over, self.score
-        
-        #4. place new food
-        if self.snake == self.food_position:
-            self.score +=1
-            reward = 10
-            self.generate_new_food_position()
-        else:
-            self.snake_position.pop()
-            
-        #5. update ui
-        self.update_ui()
-        self.clock.tick(SPEED)
 
-        #6
+        # 4. place new food or just move
+        if self.head == self.food:
+            self.score += 1
+            reward = 10
+            self.food_placement()
+        else:
+            self.snake.pop()
+        
+        # 5. update ui and clock
+        self.interface_update()
+        self.clock.tick(CNST.SNAKE_SPEED)
+        # 6. return game over and score
         return reward, game_over, self.score
 
 
-    def update_ui(self):
-        self.display.fill(BLACK)
-        
-        for position in self.snake_position:
-            pygame.draw.rect(self.display, WHITE, pygame.Rect(position[0], position[1], GRID_SIZE, GRID_SIZE))
+    def collision_chk(self, pt=None):
+        """_summary_
 
-        # Display food
-        pygame.draw.rect(self.display, RED, pygame.Rect(self.food_position[0], self.food_position[1], GRID_SIZE, GRID_SIZE))
-        
-        text = font.render("Score: " + str(self.score), True, WHITE)
+        Args:
+            pt (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        if pt is None:
+            pt = self.head
+        # hits boundary
+        if pt.x > self.width - CNST.GRID_SIZE or pt.x < 0 or pt.y > self.height - CNST.GRID_SIZE or pt.y < 0:
+            return True
+        # hits itself
+        if pt in self.snake[1:]:
+            return True
+
+        return False
+
+
+    def interface_update(self):
+        """_summary_
+        """
+        self.display.fill(CNST.BLACK)
+
+        for pt in self.snake:
+            pygame.draw.rect(self.display, CNST.WHITE, pygame.Rect(pt.x, pt.y, CNST.GRID_SIZE, CNST.GRID_SIZE))
+            #pygame.draw.rect(self.display, CNST.BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
+
+        pygame.draw.rect(self.display, CNST.RED, pygame.Rect(self.food.x, self.food.y, CNST.GRID_SIZE, CNST.GRID_SIZE))
+
+        text = font.render("Score: " + str(self.score), True, CNST.WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()
-    #clock.tick(10)
-    
-    
-    def move(self,action):
-        
+
+
+    def game_move(self, action):
+        """_summary_
+
+        Args:
+            action (_type_): _description_
+        """
         # [straight, right, left]
 
-        clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        clock_wise = [CNST.Direction.RIGHT, CNST.Direction.DOWN, CNST.Direction.LEFT, CNST.Direction.UP]
         idx = clock_wise.index(self.direction)
 
         if np.array_equal(action, [1, 0, 0]):
@@ -155,17 +158,89 @@ class SnakeGame:
             new_dir = clock_wise[next_idx] # left turn r -> u -> l -> d
 
         self.direction = new_dir
-        
-        x  = self.snake[0]
-        y = self.snake[1]
-        if self.direction == Direction.RIGHT:
-            x += GRID_SIZE
-        elif self.direction == Direction.LEFT:
-            x -= GRID_SIZE
-        elif self.direction == Direction.DOWN:
-            y += GRID_SIZE
-        elif self.direction == Direction.UP:
-            y -= GRID_SIZE
-            
-        self.snake = [x,y]
 
+        x = self.head.x
+        y = self.head.y
+        if self.direction == CNST.Direction.RIGHT:
+            x += CNST.GRID_SIZE
+        elif self.direction == CNST.Direction.LEFT:
+            x -= CNST.GRID_SIZE
+        elif self.direction == CNST.Direction.DOWN:
+            y += CNST.GRID_SIZE
+        elif self.direction == CNST.Direction.UP:
+            y -= CNST.GRID_SIZE
+
+        self.head = CNST.Point(x, y)
+        
+# model code     
+torch.manual_seed(596)
+
+class DeepQNNet(nn.Module):
+    """_summary_
+
+    Args:
+        nn (_type_): _description_
+    """
+    def __init__(self, input_size, hidden_size, output_size):
+        super().__init__()
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.linear2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = F.relu(self.linear1(x))
+        x = self.linear2(x)
+        return x
+
+    def save_model(self, file_name=CNST.MODEL_FILE_NAME):
+        model_folder_path = CNST.MODEL_FOLDER_PATH
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)
+
+
+class DeepQTraining:
+    """_summary_
+    """
+    def __init__(self, model, lr, gamma):
+        self.lr = lr
+        self.gamma = gamma
+        self.model = model
+        self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
+        self.criterion = nn.MSELoss()
+
+    def train_step(self, state, action, reward, next_state, done):
+        state = torch.tensor(state, dtype=torch.float)
+        next_state = torch.tensor(next_state, dtype=torch.float)
+        action = torch.tensor(action, dtype=torch.long)
+        reward = torch.tensor(reward, dtype=torch.float)
+        # (n, x)
+
+        if len(state.shape) == 1:
+            # (1, x)
+            state = torch.unsqueeze(state, 0)
+            next_state = torch.unsqueeze(next_state, 0)
+            action = torch.unsqueeze(action, 0)
+            reward = torch.unsqueeze(reward, 0)
+            done = (done, )
+
+        # 1: predicted Q values with current state
+        pred = self.model(state)
+
+        target = pred.clone()
+        for idx in range(len(done)):
+            Q_new = reward[idx]
+            if not done[idx]:
+                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+
+            target[idx][torch.argmax(action[idx]).item()] = Q_new
+    
+        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
+        # pred.clone()
+        # preds[argmax(action)] = Q_new
+        self.optimizer.zero_grad()
+        loss = self.criterion(target, pred)
+        loss.backward()
+
+        self.optimizer.step()

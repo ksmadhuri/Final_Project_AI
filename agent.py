@@ -2,136 +2,135 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from game import SnakeGame, Direction, Point
-from model import QNetModel, QLearningTrainer
-from helper import plot
+from game import DeepQNNet, DeepQTraining
+import constants as CNST
 
-MAX_HISTORY = 100_000
-SAMPLE_SIZE = 1000
-LEARNING_RATE = 0.01
-
-class GameAgent:
+class Agent:
+    """_summary_
+    """
 
     def __init__(self):
-        self.game_count = 0
-        self.randomness = 0  # Initial randomness
-        self.discount_factor = 0.9  # Discount rate for future rewards
-        self.memory = deque(maxlen=MAX_HISTORY)  # automatic memory management
-        self.q_net = QNetModel(11, 256, 3)
-        self.q_trainer = QLearningTrainer(self.q_net, learning_rate=LEARNING_RATE, discount_factor=self.discount_factor)
+        """_summary_
+        """
+        self.n_games = 0
+        self.epsilon = CNST.EPSILON
+        self.gamma = CNST.GAMMA
+        self.memory = deque(maxlen=CNST.MAX_MEMORY) # popleft()
+        self.model = DeepQNNet(CNST.INPUT_SIZE, CNST.HIDDEN_SIZE, CNST.OUTPUT_SIZE)
+        self.trainer = DeepQTraining(self.model, lr=CNST.LR, gamma=self.gamma)
 
-    def extract_state(self, game):
-        head = game.snake_position[0]
-        left_point = [head[0] - 20, head[1]]
-        right_point = [head[0] + 20, head[1]]
-        up_point = [head[0], head[1] - 20]
-        down_point = [head[0], head[1] + 20]
 
-        dir_left = game.direction == Direction.LEFT
-        dir_right = game.direction == Direction.RIGHT
-        dir_up = game.direction == Direction.UP
-        dir_down = game.direction == Direction.DOWN
+    def get_state(self, game):
+        """_summary_
+
+        Args:
+            game (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        head = game.snake[0]
+        point_l = CNST.Point(head.x - CNST.OFFSET, head.y)
+        point_r = CNST.Point(head.x + CNST.OFFSET, head.y)
+        point_u = CNST.Point(head.x, head.y - CNST.OFFSET)
+        point_d = CNST.Point(head.x, head.y + CNST.OFFSET)
         
-        # Function to check if the next point is dangerous
-        def is_dangerous(point):
-            return (game.collision_with_boundaries(point) or 
-                game.collision_with_self(point))
+        dir_l = game.direction == CNST.Direction.LEFT
+        dir_r = game.direction == CNST.Direction.RIGHT
+        dir_u = game.direction == CNST.Direction.UP
+        dir_d = game.direction == CNST.Direction.DOWN
+        
+        
+        state = [
+            # Danger straight
+            (dir_r and game.collision_chk(point_r)) or 
+            (dir_l and game.collision_chk(point_l)) or 
+            (dir_u and game.collision_chk(point_u)) or 
+            (dir_d and game.collision_chk(point_d)),
 
-        state_vector = [
-            # Immediate dangers
-            (dir_right and is_dangerous(right_point)) or 
-            (dir_left and is_dangerous(left_point)) or 
-            (dir_up and is_dangerous(up_point)) or 
-            (dir_down and is_dangerous(down_point)),
+            # Danger right
+            (dir_u and game.collision_chk(point_r)) or 
+            (dir_d and game.collision_chk(point_l)) or 
+            (dir_l and game.collision_chk(point_u)) or 
+            (dir_r and game.collision_chk(point_d)),
 
-            # Right-side dangers
-            (dir_up and is_dangerous(right_point)) or 
-            (dir_down and is_dangerous(left_point)) or 
-            (dir_left and is_dangerous(up_point)) or 
-            (dir_right and is_dangerous(down_point)),
-
-            # Left-side dangers
-            (dir_down and is_dangerous(right_point)) or 
-            (dir_up and is_dangerous(left_point)) or 
-            (dir_right and is_dangerous(up_point)) or 
-            (dir_left and is_dangerous(down_point)),
+            # Danger left
+            (dir_d and game.collision_chk(point_r)) or 
+            (dir_u and game.collision_chk(point_l)) or 
+            (dir_r and game.collision_chk(point_u)) or 
+            (dir_l and game.collision_chk(point_d)),
             
-            # Current direction
-            dir_left, dir_right, dir_up, dir_down,
+            # Move direction
+            dir_l,
+            dir_r,
+            dir_u,
+            dir_d,
             
-            # Food location relative to head
-            game.food_position[0] < head[0],  # Food on the left
-            game.food_position[0] > head[0],  # Food on the right
-            game.food_position[1] < head[1],  # Food above
-            game.food_position[1] > head[1]   # Food below
+            # Food location 
+            game.food.x < game.head.x,  # food left
+            game.food.x > game.head.x,  # food right
+            game.food.y < game.head.y,  # food up
+            game.food.y > game.head.y  # food down
             ]
 
-        return np.array(state_vector, dtype=int)
+        return np.array(state, dtype=int)
 
-    def store_memory(self, state, action, reward, next_state, terminal):
-        self.memory.append((state, action, reward, next_state, terminal))
+    def remember(self, state, action, reward, next_state, done):
+        """_summary_
 
-    def replay_long_memory(self):
-        if len(self.memory) > SAMPLE_SIZE:
-            mini_batch = random.sample(self.memory, SAMPLE_SIZE)
+        Args:
+            state (_type_): _description_
+            action (_type_): _description_
+            reward (_type_): _description_
+            next_state (_type_): _description_
+            done (function): _description_
+        """
+        self.memory.append((state, action, reward, next_state, done)) # popleft if CNST.MAX_MEMORY is reached
+
+    def train_long_memory(self):
+        """_summary_
+        """
+        if len(self.memory) > CNST.BATCH_SIZE:
+            mini_sample = random.sample(self.memory, CNST.BATCH_SIZE) # list of tuples
         else:
-            mini_batch = self.memory
+            mini_sample = self.memory
 
-        states, actions, rewards, next_states, terminals = zip(*mini_batch)
-        self.q_trainer.update(states, actions, rewards, next_states, terminals)
+        states, actions, rewards, next_states, dones = zip(*mini_sample)
+        self.trainer.train_step(states, actions, rewards, next_states, dones)
+        #for state, action, reward, nexrt_state, done in mini_sample:
+        #    self.trainer.train_step(state, action, reward, next_state, done)
 
-    def replay_recent_memory(self, state, action, reward, next_state, terminal):
-        self.q_trainer.update(state, action, reward, next_state, terminal)
+    def train_short_memory(self, state, action, reward, next_state, done):
+        """_summary_
 
-    def decide_action(self, state):
-        # Exploration-exploitation balance
-        self.randomness = 80 - self.game_count
-        action_vector = [0, 0, 0]
-        if random.randint(0, 200) < self.randomness:
-            move_index = random.randint(0, 2)
-            action_vector[move_index] = 1
+        Args:
+            state (_type_): _description_
+            action (_type_): _description_
+            reward (_type_): _description_
+            next_state (_type_): _description_
+            done (function): _description_
+        """
+        self.trainer.train_step(state, action, reward, next_state, done)
+
+    def get_action(self, state):
+        """_summary_
+
+        Args:
+            state (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        # random moves: tradeoff exploration / exploitation
+        self.epsilon = 80 - self.n_games
+        final_move = [0,0,0]
+        if random.randint(0, 200) < self.epsilon:
+            move = random.randint(0, 2)
+            final_move[move] = 1
         else:
-            state_tensor = torch.tensor(state, dtype=torch.float)
-            prediction = self.q_net(state_tensor)
-            best_action = torch.argmax(prediction).item()
-            action_vector[best_action] = 1
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model(state0)
+            move = torch.argmax(prediction).item()
+            final_move[move] = 1
 
-        return action_vector
-
-
-def run_training_loop():
-    score_history = []
-    mean_score_history = []
-    total_score = 0
-    best_score = 0
-    agent = GameAgent()
-    game = SnakeGame()
-    while True:
-        current_state = agent.extract_state(game)
-        action = agent.decide_action(current_state)
-        reward, finished, score = game.play_step(action)
-        new_state = agent.extract_state(game)
-
-        agent.replay_recent_memory(current_state, action, reward, new_state, finished)
-        agent.store_memory(current_state, action, reward, new_state, finished)
-
-        if finished:
-            game.reset()
-            agent.game_count += 1
-            agent.replay_long_memory()
-
-            if score > best_score:
-                best_score = score
-                agent.q_net.save_model()
-
-            print('Game', agent.game_count, 'Score', score, 'Record:', best_score)
-
-            score_history.append(score)
-            total_score += score
-            mean_score = total_score / agent.game_count
-            mean_score_history.append(mean_score)
-            plot(score_history, mean_score_history)
-
-
-if __name__ == '__main__':
-    run_training_loop()
+        return final_move

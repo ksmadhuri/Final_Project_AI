@@ -1,9 +1,5 @@
-ipython==8.24.0
-matplotlib==3.8.4
-matplotlib-inline==0.1.7
-numpy==1.26.4
-pandas==2.2.2
-pygame==2.5.2
-torch==2.3.0
-torchvision==0.18.0
-
+pygame
+numpy
+torch
+matplotlib
+seaborn
