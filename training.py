@@ -30,7 +30,7 @@ def train():
 
         if done:
             # train long memory, plot result
-            game.game_rest()
+            game.reset_game()
             agent.n_games += 1
             agent.train_long_memory()
 

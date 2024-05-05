@@ -28,10 +28,10 @@ class SnakeGameInterface:
         self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption('Snake')
         self.clock = pygame.time.Clock()
-        self.game_rest()
+        self.reset_game()
 
 
-    def game_rest(self):
+    def reset_game(self):
         """_summary_
         """
         # init game state
@@ -46,18 +46,18 @@ class SnakeGameInterface:
 
         self.score = 0
         self.food = None
-        self.food_placement()
-        self.frame_iteration = 0
+        self.create_food()
+        self.iterations = 0
 
 
-    def food_placement(self):
+    def create_food(self):
         """_summary_
         """
         x = random.randint(0, (self.width-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
         y = random.randint(0, (self.height-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
         self.food = CNST.Point(x, y)
         if self.food in self.snake:
-            self.food_placement()
+            self.create_food()
 
 
     def game_play(self, action):
@@ -69,7 +69,7 @@ class SnakeGameInterface:
         Returns:
             _type_: _description_
         """
-        self.frame_iteration += 1
+        self.iterations += 1
         # 1. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -77,13 +77,13 @@ class SnakeGameInterface:
                 quit()
         
         # 2. move
-        self.game_move(action) # update the head
+        self.move_snake(action) # update the head
         self.snake.insert(0, self.head)
         
         # 3. check if game over
         reward = 0
         game_over = False
-        if self.collision_chk() or self.frame_iteration > 100*len(self.snake):
+        if self.collision_chk() or self.iterations > 100*len(self.snake):
             game_over = True
             reward = -10
             return reward, game_over, self.score
@@ -92,7 +92,7 @@ class SnakeGameInterface:
         if self.head == self.food:
             self.score += 1
             reward = 10
-            self.food_placement()
+            self.create_food()
         else:
             self.snake.pop()
         
@@ -140,7 +140,7 @@ class SnakeGameInterface:
         pygame.display.flip()
 
 
-    def game_move(self, action):
+    def move_snake(self, action):
         """_summary_
 
         Args:
