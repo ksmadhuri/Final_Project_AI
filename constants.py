@@ -30,8 +30,8 @@ BLACK = (0,0,0)
 # game parameters
 GRID_SIZE = 20
 SNAKE_SPEED = 60
-WIDTH = 500
-HEIGHT = 500
+WIDTH = 640
+HEIGHT = 480
 
 # snake parameters
 class Direction(Enum):
