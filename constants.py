@@ -34,7 +34,7 @@ WIDTH = 640
 HEIGHT = 480
 
 # snake parameters
-class Direction(Enum):
+class snake_direction(Enum):
     RIGHT = 'RIGHT'
     LEFT = 'LEFT'
     UP = 'UP'

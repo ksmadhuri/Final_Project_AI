@@ -35,11 +35,14 @@ class SnakeGameInterface:
         """_summary_
         """
         # init game state
-        self.direction = CNST.Direction.RIGHT
+        self.direction = CNST.snake_direction.RIGHT
 
         self.head = CNST.Point(self.width/2, self.height/2)
-        self.snake = [CNST.Point(self.head.x-CNST.GRID_SIZE, self.head.y),
-                      CNST.Point(self.head.x-(2*CNST.GRID_SIZE), self.head.y)]
+        self.snake = [CNST.Point(self.head.x, self.head.y),
+                      CNST.Point(self.head.x, self.head.y)]
+                      #CNST.Point(self.head.x, self.head.y)]
+        #[CNST.Point(self.head.x-CNST.GRID_SIZE, self.head.y),
+                      #CNST.Point(self.head.x-(2*CNST.GRID_SIZE), self.head.y)]
 
         self.score = 0
         self.food = None
@@ -145,7 +148,7 @@ class SnakeGameInterface:
         """
         # [straight, right, left]
 
-        clock_wise = [CNST.Direction.RIGHT, CNST.Direction.DOWN, CNST.Direction.LEFT, CNST.Direction.UP]
+        clock_wise = [CNST.snake_direction.RIGHT, CNST.snake_direction.DOWN, CNST.snake_direction.LEFT, CNST.snake_direction.UP]
         idx = clock_wise.index(self.direction)
 
         if np.array_equal(action, [1, 0, 0]):
@@ -161,13 +164,13 @@ class SnakeGameInterface:
 
         x = self.head.x
         y = self.head.y
-        if self.direction == CNST.Direction.RIGHT:
+        if self.direction == CNST.snake_direction.RIGHT:
             x += CNST.GRID_SIZE
-        elif self.direction == CNST.Direction.LEFT:
+        elif self.direction == CNST.snake_direction.LEFT:
             x -= CNST.GRID_SIZE
-        elif self.direction == CNST.Direction.DOWN:
+        elif self.direction == CNST.snake_direction.DOWN:
             y += CNST.GRID_SIZE
-        elif self.direction == CNST.Direction.UP:
+        elif self.direction == CNST.snake_direction.UP:
             y -= CNST.GRID_SIZE
 
         self.head = CNST.Point(x, y)

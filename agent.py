@@ -35,10 +35,10 @@ class Agent:
         point_u = CNST.Point(head.x, head.y - CNST.OFFSET)
         point_d = CNST.Point(head.x, head.y + CNST.OFFSET)
         
-        dir_l = game.direction == CNST.Direction.LEFT
-        dir_r = game.direction == CNST.Direction.RIGHT
-        dir_u = game.direction == CNST.Direction.UP
-        dir_d = game.direction == CNST.Direction.DOWN
+        dir_l = game.direction == CNST.snake_direction.LEFT
+        dir_r = game.direction == CNST.snake_direction.RIGHT
+        dir_u = game.direction == CNST.snake_direction.UP
+        dir_d = game.direction == CNST.snake_direction.DOWN
         
         
         state = [
