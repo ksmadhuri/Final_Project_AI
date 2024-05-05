@@ -229,9 +229,9 @@ class DeepQTraining:
             done = (done, )
 
         # 1: predicted Q values with current current_state
-        pred = self.model(current_state)
+        pred_q = self.model(current_state)
 
-        target = pred.clone()
+        target = pred_q.clone()
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
@@ -240,10 +240,10 @@ class DeepQTraining:
             target[idx][torch.argmax(action[idx]).item()] = Q_new
     
         # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        # pred.clone()
+        # pred_q.clone()
         # preds[argmax(action)] = Q_new
         self.optimizer.zero_grad()
-        loss = self.loss(target, pred)
+        loss = self.loss(target, pred_q)
         loss.backward()
 
         self.optimizer.step()
