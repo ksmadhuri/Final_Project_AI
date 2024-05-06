@@ -6,8 +6,8 @@ import os
 import constants as CNST
 
 pygame.init()
-font = pygame.font.SysFont('arial', 25)
 
+# snake game is being created using pygame module of python and it was taken inspiration from: 
 class SnakeGameInterface:
     """Class representing the interface for the Snake game."""
 
@@ -49,7 +49,26 @@ class SnakeGameInterface:
         self.food = CNST.Point(x, y)
         if self.food in self.snake:
             self.create_food()
+            
+    def collision_chk(self, pt=None):
+        """Check for collisions.
 
+        Args:
+            pt (Point, optional): Point to check for collision. Defaults to None.
+
+        Returns:
+            bool: True if collision occurred, False otherwise.
+        """
+        if pt is None:
+            pt = self.head
+        # hits boundary
+        if pt.x > self.width - CNST.GRID_SIZE or pt.x < 0 or pt.y > self.height - CNST.GRID_SIZE or pt.y < 0:
+            return True
+        # hits itself
+        if pt in self.snake[1:]:
+            return True
+
+        return False
 
     def game_play(self, action):
         """Play one step of the game.
@@ -93,28 +112,6 @@ class SnakeGameInterface:
         # 6. return game over and score
         return reward, game_over, self.score
 
-
-    def collision_chk(self, pt=None):
-        """Check for collisions.
-
-        Args:
-            pt (Point, optional): Point to check for collision. Defaults to None.
-
-        Returns:
-            bool: True if collision occurred, False otherwise.
-        """
-        if pt is None:
-            pt = self.head
-        # hits boundary
-        if pt.x > self.width - CNST.GRID_SIZE or pt.x < 0 or pt.y > self.height - CNST.GRID_SIZE or pt.y < 0:
-            return True
-        # hits itself
-        if pt in self.snake[1:]:
-            return True
-
-        return False
-
-
     def interface_update(self):
         """Update the game interface."""
         self.display.fill(CNST.BLACK)
@@ -124,7 +121,7 @@ class SnakeGameInterface:
             #pygame.draw.rect(self.display, CNST.BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
 
         pygame.draw.rect(self.display, CNST.RED, pygame.Rect(self.food.x, self.food.y, CNST.GRID_SIZE, CNST.GRID_SIZE))
-
+        font = pygame.font.SysFont('arial', 25)
         text = font.render("Score: " + str(self.score), True, CNST.WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()

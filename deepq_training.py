@@ -1,4 +1,4 @@
-from snake_game_controller import Agent
+from snake_game_controller import DeepQAgent
 from snake_game_logic import SnakeGameInterface
 import constants as CNST
 
@@ -7,7 +7,7 @@ def train():
     plot_scores = []  # List to store scores for plotting
     total_score = 0  # Total score counter
     record = 0  # Record score
-    agent = Agent()  # Initialize the agent
+    agent = DeepQAgent()  # Initialize the agent
     game = SnakeGameInterface()  # Initialize the game environment
     while agent.n_games < 200:
         # Get the old state

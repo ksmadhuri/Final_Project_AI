@@ -5,11 +5,11 @@ from collections import deque
 from snake_game_logic import DeepQNNet, DeepQTraining
 import constants as CNST
 
-class Agent:
-    """Class representing the Agent for the Snake game."""
+class DeepQAgent:
+    """Class representing the DeepQAgent for the Snake game."""
 
     def __init__(self):
-        """Initialize the Agent."""
+        """Initialize the DeepQAgent."""
         self.n_games = 0
         self.epsilon = CNST.EPSILON
         self.discount_factor = CNST.DISCOUNT_FACTOR
@@ -28,50 +28,62 @@ class Agent:
             np.array: Array representing the current state.
         """
         head = game.snake[0]
-        point_l = CNST.Point(head.x - CNST.MOVEMENT_OFFSET, head.y)
-        point_r = CNST.Point(head.x + CNST.MOVEMENT_OFFSET, head.y)
-        point_u = CNST.Point(head.x, head.y - CNST.MOVEMENT_OFFSET)
-        point_d = CNST.Point(head.x, head.y + CNST.MOVEMENT_OFFSET)
-        
-        dir_l = game.direction == CNST.snake_direction.LEFT
-        dir_r = game.direction == CNST.snake_direction.RIGHT
-        dir_u = game.direction == CNST.snake_direction.UP
-        dir_d = game.direction == CNST.snake_direction.DOWN
-        
-        
-        state = [
-            # Danger straight
-            (dir_r and game.collision_chk(point_r)) or 
-            (dir_l and game.collision_chk(point_l)) or 
-            (dir_u and game.collision_chk(point_u)) or 
-            (dir_d and game.collision_chk(point_d)),
+        # Define points in each direction
+        left_point = CNST.Point(head.x - CNST.MOVEMENT_OFFSET, head.y)
+        right_point = CNST.Point(head.x + CNST.MOVEMENT_OFFSET, head.y)
+        up_point = CNST.Point(head.x, head.y - CNST.MOVEMENT_OFFSET)
+        down_point = CNST.Point(head.x, head.y + CNST.MOVEMENT_OFFSET)
 
-            # Danger right
-            (dir_u and game.collision_chk(point_r)) or 
-            (dir_d and game.collision_chk(point_l)) or 
-            (dir_l and game.collision_chk(point_u)) or 
-            (dir_r and game.collision_chk(point_d)),
+        # Check for collision in each direction
+        danger_straight, danger_right, danger_left = self.get_dangers(game, left_point, right_point, up_point, down_point)
 
-            # Danger left
-            (dir_d and game.collision_chk(point_r)) or 
-            (dir_u and game.collision_chk(point_l)) or 
-            (dir_r and game.collision_chk(point_u)) or 
-            (dir_l and game.collision_chk(point_d)),
-            
-            # Move direction
-            dir_l,
-            dir_r,
-            dir_u,
-            dir_d,
-            
-            # Food location 
-            game.food.x < game.head.x,  # food left
-            game.food.x > game.head.x,  # food right
-            game.food.y < game.head.y,  # food up
-            game.food.y > game.head.y  # food down
-            ]
+        # Encode move direction
+        move_left = game.direction == CNST.snake_direction.LEFT
+        move_right = game.direction == CNST.snake_direction.RIGHT
+        move_up = game.direction == CNST.snake_direction.UP
+        move_down = game.direction == CNST.snake_direction.DOWN
+
+        # Encode food location
+        food_left = game.food.x < game.head.x
+        food_right = game.food.x > game.head.x
+        food_up = game.food.y < game.head.y
+        food_down = game.food.y > game.head.y
+
+        # Construct state array
+        state = [danger_straight, danger_right, danger_left, move_left, move_right, move_up, move_down, food_left, food_right, food_up, food_down]
 
         return np.array(state, dtype=int)
+
+    def get_dangers(self, game, left_point, right_point, up_point, down_point):
+        """Calculate the dangers in each direction.
+
+        Args:
+            game (SnakeGameInterface): The Snake game instance.
+            left_point (Point): The point to the left of the snake's head.
+            right_point (Point): The point to the right of the snake's head.
+            up_point (Point): The point above the snake's head.
+            down_point (Point): The point below the snake's head.
+
+        Returns:
+            Tuple[bool, bool, bool]: A tuple containing danger flags for straight, right, and left directions.
+        """
+        danger_straight = (game.direction == CNST.snake_direction.RIGHT and game.collision_chk(right_point)) or \
+                        (game.direction == CNST.snake_direction.LEFT and game.collision_chk(left_point)) or \
+                        (game.direction == CNST.snake_direction.UP and game.collision_chk(up_point)) or \
+                        (game.direction == CNST.snake_direction.DOWN and game.collision_chk(down_point))
+
+        danger_right = (game.direction == CNST.snake_direction.UP and game.collision_chk(right_point)) or \
+                    (game.direction == CNST.snake_direction.DOWN and game.collision_chk(left_point)) or \
+                    (game.direction == CNST.snake_direction.LEFT and game.collision_chk(up_point)) or \
+                    (game.direction == CNST.snake_direction.RIGHT and game.collision_chk(down_point))
+
+        danger_left = (game.direction == CNST.snake_direction.DOWN and game.collision_chk(right_point)) or \
+                    (game.direction == CNST.snake_direction.UP and game.collision_chk(left_point)) or \
+                    (game.direction == CNST.snake_direction.RIGHT and game.collision_chk(up_point)) or \
+                    (game.direction == CNST.snake_direction.LEFT and game.collision_chk(down_point))
+                        
+        return danger_straight, danger_right, danger_left
+
 
     def remember(self, state, action, reward, next_state, done):
         """Store a game transition in the memory buffer.

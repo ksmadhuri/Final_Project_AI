@@ -3,33 +3,6 @@ import seaborn as sns
 from IPython import display
 from enum import Enum
 
-# Agent parameters
-MAXIMUM_MEMORY = 100_000
-BATCH_SIZE = 1000
-LEARNING_RATE = 0.001         # can change to 0.001
-EPSILON = 1     # can change to 0
-DISCOUNT_FACTOR = 0.9
-MOVEMENT_OFFSET = 20
-
-# model parameters
-INPUT_DIM = 11
-HIDDEN_DIM = 512 # can change 128, 256, 512
-OUTPUT_DIM = 3
-
-MODEL_FILE_NAME = "q_learning_model.pth"
-MODEL_FOLDER_PATH = "./models"
-
-# colors
-WHITE = (255, 255, 255)
-RED = (200,0,0)
-BLACK = (0,0,0)
-
-# game parameters
-GRID_SIZE = 20
-SNAKE_SPEED = 60
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 480
-
 # snake parameters
 class snake_direction(Enum):
     """Enum for snake directions."""
@@ -66,3 +39,30 @@ def plot(scores):
     plt.ylim(ymin=0)
     plt.show(block=False)
     plt.pause(0.1)
+
+# DeepQAgent parameters
+MAXIMUM_MEMORY = 100_000
+BATCH_SIZE = 1000
+LEARNING_RATE = 0.001         # can change to 0.001
+EPSILON = 1     # can change to 0
+DISCOUNT_FACTOR = 0.9
+MOVEMENT_OFFSET = 20
+
+# model parameters
+INPUT_DIM = 11
+HIDDEN_DIM = 512 # can change 128, 256, 512
+OUTPUT_DIM = 3
+
+MODEL_FILE_NAME = "q_learning_model.pth"
+MODEL_FOLDER_PATH = "./model_trained"
+
+# colors
+WHITE = (255, 255, 255)
+RED = (200,0,0)
+BLACK = (0,0,0)
+
+# game parameters
+GRID_SIZE = 25
+SNAKE_SPEED = 70
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
