@@ -1,4 +1,4 @@
-import torch
+import tensorflow as tf
 import random
 import numpy as np
 from collections import deque
@@ -6,12 +6,10 @@ from game import DeepQNNet, DeepQTraining
 import constants as CNST
 
 class Agent:
-    """_summary_
-    """
+    """Class representing the Agent for the Snake game."""
 
     def __init__(self):
-        """_summary_
-        """
+        """Initialize the Agent."""
         self.n_games = 0
         self.epsilon = CNST.EPSILON
         self.discount_factor = CNST.GAMMA
@@ -21,13 +19,13 @@ class Agent:
 
 
     def get_state(self, game):
-        """_summary_
+        """Get the current state of the game.
 
         Args:
-            game (_type_): _description_
+            game (SnakeGameInterface): The Snake game instance.
 
         Returns:
-            _type_: _description_
+            np.array: Array representing the current state.
         """
         head = game.snake[0]
         point_l = CNST.Point(head.x - CNST.OFFSET, head.y)
@@ -76,20 +74,19 @@ class Agent:
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
-        """_summary_
+        """Store a game transition in the memory buffer.
 
         Args:
-            state (_type_): _description_
-            action (_type_): _description_
-            reward (_type_): _description_
-            next_state (_type_): _description_
-            done (function): _description_
+            state (np.array): Current state.
+            action (int): Action taken.
+            reward (int): Reward received.
+            next_state (np.array): Next state.
+            done (bool): Whether the episode is done.
         """
         self.memory.append((state, action, reward, next_state, done)) # popleft if CNST.MAX_MEMORY is reached
 
     def train_long_memory(self):
-        """_summary_
-        """
+        """Train the model using experiences from memory."""
         if len(self.memory) > CNST.BATCH_SIZE:
             mini_sample = random.sample(self.memory, CNST.BATCH_SIZE) # list of tuples
         else:
@@ -97,29 +94,27 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
-        #for state, action, reward, nexrt_state, done in mini_sample:
-        #    self.trainer.train_step(state, action, reward, next_state, done)
 
     def train_short_memory(self, state, action, reward, next_state, done):
-        """_summary_
+        """Train the model using a single experience.
 
         Args:
-            state (_type_): _description_
-            action (_type_): _description_
-            reward (_type_): _description_
-            next_state (_type_): _description_
-            done (function): _description_
+            state (np.array): Current state.
+            action (int): Action taken.
+            reward (int): Reward received.
+            next_state (np.array): Next state.
+            done (bool): Whether the episode is done.
         """
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        """_summary_
+        """Choose an action based on the current state.
 
         Args:
-            state (_type_): _description_
+            state (np.array): Current state.
 
         Returns:
-            _type_: _description_
+            np.array: Action to take.
         """
         # random moves: tradeoff exploration / exploitation
         self.epsilon = 80 - self.n_games
@@ -128,9 +123,10 @@ class Agent:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
-            move = torch.argmax(prediction).item()
+             # Exploitation: choose the best move based on the model's prediction
+            state_tensor = tf.convert_to_tensor([state], dtype=tf.float32)  # Convert state to tensor and add batch dimension
+            prediction = self.model(state_tensor)  # Get model predictions
+            move = tf.argmax(prediction[0]).numpy()  # Get the index of the max value
             final_move[move] = 1
 
         return final_move

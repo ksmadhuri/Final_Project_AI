@@ -23,8 +23,6 @@ MODEL_FOLDER_PATH = "./models"
 # colors
 WHITE = (255, 255, 255)
 RED = (200,0,0)
-#BLUE1 = (0, 0, 255)
-#BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
 # game parameters
@@ -35,6 +33,7 @@ HEIGHT = 480
 
 # snake parameters
 class snake_direction(Enum):
+    """Enum for snake directions."""
     RIGHT = 'RIGHT'
     LEFT = 'LEFT'
     UP = 'UP'
@@ -42,10 +41,11 @@ class snake_direction(Enum):
 
 Point = namedtuple('Point', 'x, y')
 
-# plotting the progress of the model training
+# Plotting the progress of the model training
 plt.ion()
 
 def plot(scores):
+    """Plot the training progress."""
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.clf()

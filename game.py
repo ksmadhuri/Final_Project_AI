@@ -1,10 +1,7 @@
 import pygame
 import random
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
+import tensorflow as tf
 import os
 import constants as CNST
 
@@ -12,15 +9,14 @@ pygame.init()
 font = pygame.font.SysFont('arial', 25)
 
 class SnakeGameInterface:
-    """_summary_
-    """
+    """Class representing the interface for the Snake game."""
 
     def __init__(self, width=CNST.WIDTH, height=CNST.HEIGHT):
-        """_summary_
+        """Initialize the Snake game interface.
 
         Args:
-            width (_type_, optional): _description_. Defaults to CNST.WIDTH.
-            height (_type_, optional): _description_. Defaults to CNST.HEIGHT.
+            width (int, optional): Width of the game window. Defaults to CNST.WIDTH.
+            height (int, optional): Height of the game window. Defaults to CNST.HEIGHT.
         """
         self.width = width
         self.height = height
@@ -32,17 +28,13 @@ class SnakeGameInterface:
 
 
     def reset_game(self):
-        """_summary_
-        """
+        """Reset the game to its initial state."""
         # init game current_state
         self.direction = CNST.snake_direction.RIGHT
 
         self.head = CNST.Point(self.width/2, self.height/2)
         self.snake = [CNST.Point(self.head.x, self.head.y),
                       CNST.Point(self.head.x, self.head.y)]
-                      #CNST.Point(self.head.x, self.head.y)]
-        #[CNST.Point(self.head.x-CNST.GRID_SIZE, self.head.y),
-                      #CNST.Point(self.head.x-(2*CNST.GRID_SIZE), self.head.y)]
 
         self.score = 0
         self.food = None
@@ -51,8 +43,7 @@ class SnakeGameInterface:
 
 
     def create_food(self):
-        """_summary_
-        """
+        """Create food for the snake."""
         x = random.randint(0, (self.width-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
         y = random.randint(0, (self.height-CNST.GRID_SIZE )//CNST.GRID_SIZE )*CNST.GRID_SIZE
         self.food = CNST.Point(x, y)
@@ -61,13 +52,13 @@ class SnakeGameInterface:
 
 
     def game_play(self, action):
-        """_summary_
+        """Play one step of the game.
 
         Args:
-            action (_type_): _description_
+            action (int): Action to take.
 
         Returns:
-            _type_: _description_
+            Tuple[int, bool, int]: Reward, game over status, and current score.
         """
         self.iterations += 1
         # 1. collect user input
@@ -104,13 +95,13 @@ class SnakeGameInterface:
 
 
     def collision_chk(self, pt=None):
-        """_summary_
+        """Check for collisions.
 
         Args:
-            pt (_type_, optional): _description_. Defaults to None.
+            pt (Point, optional): Point to check for collision. Defaults to None.
 
         Returns:
-            _type_: _description_
+            bool: True if collision occurred, False otherwise.
         """
         if pt is None:
             pt = self.head
@@ -125,8 +116,7 @@ class SnakeGameInterface:
 
 
     def interface_update(self):
-        """_summary_
-        """
+        """Update the game interface."""
         self.display.fill(CNST.BLACK)
 
         for pt in self.snake:
@@ -141,10 +131,10 @@ class SnakeGameInterface:
 
 
     def move_snake(self, action):
-        """_summary_
+        """Move the snake based on the action.
 
         Args:
-            action (_type_): _description_
+            action (int): Action to take.
         """
         # [straight, right, left]
 
@@ -175,75 +165,105 @@ class SnakeGameInterface:
 
         self.head = CNST.Point(x, y)
         
-# model code     
-torch.manual_seed(596)
-
-class DeepQNNet(nn.Module):
-    """_summary_
-
-    Args:
-        nn (_type_): _description_
-    """
+#model
+class DeepQNNet(tf.keras.Model):
+    """Deep Q-Network model for the Snake game."""
     def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
+        """Initialize the Deep Q-Network model.
 
-    def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
+        Args:
+            input_size (int): Size of the input layer.
+            hidden_size (int): Size of the hidden layer.
+            output_size (int): Size of the output layer.
+        """
+        super(DeepQNNet, self).__init__()
+        self.dense1 = tf.keras.layers.Dense(hidden_size, activation='relu', input_shape=(input_size,))
+        self.dense2 = tf.keras.layers.Dense(output_size, activation='relu')
+
+    def call(self, inputs):
+        """Forward pass of the model.
+
+        Args:
+            inputs (tensor): Input tensor.
+
+        Returns:
+            tensor: Output tensor.
+        """
+        if len(inputs.shape) == 1:  # Means we have only one instance without batch dimension
+            inputs = tf.expand_dims(inputs, 0)
+        x = self.dense1(inputs)
+        x = self.dense2(x)
         return x
 
     def save_model(self, file_name=CNST.MODEL_FILE_NAME):
+        """Save the model to a file.
+
+        Args:
+            file_name (str, optional): Name of the file to save the model. Defaults to CNST.MODEL_FILE_NAME.
+        """
         model_folder_path = CNST.MODEL_FOLDER_PATH
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)
-
-        file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
+        file_path = os.path.join(model_folder_path, file_name)
+        self.save_weights(file_path)
 
 
 class DeepQTraining:
-    """_summary_
-    """
+    """Class for training the Deep Q-Network."""
     def __init__(self, model, learning_rate, discount_factor):
-        self.learning_rate = learning_rate
-        self.discount_factor = discount_factor
+        """Initialize the Deep Q-Training.
+
+        Args:
+            model (DeepQNNet): Deep Q-Network model.
+            learning_rate (float): Learning rate for optimization.
+            discount_factor (float): Discount factor for future rewards.
+        """
         self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr = self.learning_rate)
-        self.loss = nn.MSELoss()
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate)
+        self.discount_factor = discount_factor
+        self.loss = tf.keras.losses.MeanSquaredError()
 
     def train_step(self, current_state, action, reward, next_state, done):
-        current_state = torch.tensor(current_state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float)
-        # (n, x)
+        """Perform one training step.
 
-        if current_state.dim() == 1:
-            # (1, x)
-            current_state = current_state.unsqueeze(0)
-            next_state = next_state.unsqueeze(0)
-            action = action.unsqueeze(0)
-            reward = reward.unsqueeze(0)
+        Args:
+            current_state (tensor): Current state tensor.
+            action (tensor): Action tensor.
+            reward (tensor): Reward tensor.
+            next_state (tensor): Next state tensor.
+            done (bool): Whether the episode is done.
+        """
+        current_state = tf.convert_to_tensor(current_state, dtype=tf.float32)
+        next_state = tf.convert_to_tensor(next_state, dtype=tf.float32)
+        action = tf.convert_to_tensor(action, dtype=tf.int32)
+        reward = tf.convert_to_tensor(reward, dtype=tf.float32)
+        
+        if current_state.ndim == 1:
+            current_state = tf.expand_dims(current_state, axis=0)
+            next_state = tf.expand_dims(next_state, axis=0)
+            action = tf.expand_dims(action, axis=0)
+            reward = tf.expand_dims(reward, axis=0)
             done = (done, )
+            
+        with tf.GradientTape() as tape:
+            loss = 0
+            for idx in range(len(done)):
+                Q_new = reward[idx]
+                if not done[idx]:
+                    max_q_value_next_state = tf.reduce_max(self.model(next_state[idx]), axis=1)
+                    Q_new = reward[idx] + self.discount_factor * max_q_value_next_state
 
-        # 1: predicted Q values with current current_state
-        pred_q = self.model(current_state)
+                # Compute the Q-value for the chosen action
+                num_actions = self.model.dense2.units  # Get the number of units in the output layer
+                action_mask = tf.one_hot(action[idx], depth=num_actions)
+                Q_chosen_action = tf.reduce_sum(self.model(current_state[idx]) * action_mask, axis=1)
 
-        target = pred_q.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.discount_factor * torch.max(self.model(next_state[idx]))
+                # Compute the loss for this sample
+                sample_loss = self.loss(Q_new, Q_chosen_action)
+                loss += sample_loss
 
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-    
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        # pred_q.clone()
-        # preds[argmax(action)] = Q_new
-        self.optimizer.zero_grad()
-        loss = self.loss(target, pred_q)
-        loss.backward()
+        # Get the gradients of the loss with respect to the trainable variables
+        gradients = tape.gradient(loss, self.model.trainable_variables)
 
-        self.optimizer.step()
+        # Apply the gradients to update the model parameters
+        self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables)))
