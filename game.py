@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import os
 import constants as CNST
+import tensorflow as tf
 
 pygame.init()
 font = pygame.font.SysFont('arial', 25)
@@ -178,72 +179,99 @@ class SnakeGameInterface:
 # model code     
 torch.manual_seed(596)
 
-class DeepQNNet(nn.Module):
-    """_summary_
-
-    Args:
-        nn (_type_): _description_
-    """
+class DeepQNNet(tf.keras.Model):
     def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
+        super(DeepQNNet, self).__init__()
+        self.dense1 = tf.keras.layers.Dense(hidden_size, activation='relu', input_shape=(input_size,))
+        self.dense2 = tf.keras.layers.Dense(output_size, activation='relu')
 
-    def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
+    def call(self, inputs):
+        if len(inputs.shape) == 1:  # Means we have only one instance without batch dimension
+            inputs = tf.expand_dims(inputs, 0)
+        x = self.dense1(inputs)
+        x = self.dense2(x)
         return x
 
     def save_model(self, file_name=CNST.MODEL_FILE_NAME):
         model_folder_path = CNST.MODEL_FOLDER_PATH
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)
-
-        file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
+        file_path = os.path.join(model_folder_path, file_name)
+        self.save_weights(file_path)
 
 
 class DeepQTraining:
-    """_summary_
-    """
     def __init__(self, model, learning_rate, discount_factor):
-        self.learning_rate = learning_rate
-        self.discount_factor = discount_factor
         self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr = self.learning_rate)
-        self.loss = nn.MSELoss()
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate)
+        self.discount_factor = discount_factor
+        self.loss = tf.keras.losses.MeanSquaredError()
 
     def train_step(self, current_state, action, reward, next_state, done):
-        current_state = torch.tensor(current_state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float)
-        # (n, x)
-
-        if current_state.dim() == 1:
-            # (1, x)
-            current_state = current_state.unsqueeze(0)
-            next_state = next_state.unsqueeze(0)
-            action = action.unsqueeze(0)
-            reward = reward.unsqueeze(0)
+        current_state = tf.convert_to_tensor(current_state, dtype=tf.float32)
+        next_state = tf.convert_to_tensor(next_state, dtype=tf.float32)
+        action = tf.convert_to_tensor(action, dtype=tf.int32)
+        reward = tf.convert_to_tensor(reward, dtype=tf.float32)
+        
+        if current_state.ndim == 1:
+            current_state = tf.expand_dims(current_state, axis=0)
+            next_state = tf.expand_dims(next_state, axis=0)
+            action = tf.expand_dims(action, axis=0)
+            reward = tf.expand_dims(reward, axis=0)
             done = (done, )
+            
+        with tf.GradientTape() as tape:
+            loss = 0
+            for idx in range(len(done)):
+                Q_new = reward[idx]
+                if not done[idx]:
+                    max_q_value_next_state = tf.reduce_max(self.model(next_state[idx]), axis=1)
+                    Q_new = reward[idx] + self.discount_factor * max_q_value_next_state
 
-        # 1: predicted Q values with current current_state
-        pred_q = self.model(current_state)
+                # Compute the Q-value for the chosen action
+                num_actions = self.model.dense2.units  # Get the number of units in the output layer
+                action_mask = tf.one_hot(action[idx], depth=num_actions)
+                Q_chosen_action = tf.reduce_sum(self.model(current_state[idx]) * action_mask, axis=1)
 
-        target = pred_q.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.discount_factor * torch.max(self.model(next_state[idx]))
+                # Compute the loss for this sample
+                sample_loss = self.loss(Q_new, Q_chosen_action)
+                loss += sample_loss
 
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
-    
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        # pred_q.clone()
-        # preds[argmax(action)] = Q_new
-        self.optimizer.zero_grad()
-        loss = self.loss(target, pred_q)
-        loss.backward()
+        # Get the gradients of the loss with respect to the trainable variables
+        gradients = tape.gradient(loss, self.model.trainable_variables)
 
-        self.optimizer.step()
+        # Apply the gradients to update the model parameters
+        self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+
+        # done = tf.convert_to_tensor(done, dtype=tf.bool)
+
+        # with tf.GradientTape() as tape:
+        #     pred_q = self.model(current_state, training=True)
+        #     target_q = tf.identity(pred_q)
+        #     future_q = self.model(next_state, training=True)
+        #     max_future_q = tf.reduce_max(future_q, axis=1)
+        #     updates = reward + self.discount_factor * max_future_q
+        #     updates = tf.where(done, reward, updates)
+
+        #     batch_size = tf.shape(current_state)[0]  # Assuming current_state has shape [batch_size, num_features]
+        #     action_indices = tf.reshape(action, [-1, 1])  # Reshape action to [batch_size, 1]
+        #     batch_indices = tf.range(batch_size)  # Vector of [0, 1, ..., batch_size-1]
+        #     batch_indices = tf.reshape(batch_indices, [-1, 1])  # Reshape to [batch_size, 1]
+        #     print(tf.shape(batch_indices))
+        #     print(tf.shape(action_indices))
+        #     indices = tf.concat([batch_indices, action_indices], axis=1)  # Shape [batch_size, 2]
+
+        #     # Ensure updates is a vector with shape [batch_size]
+        #     updates = reward + self.discount_factor * tf.reduce_max(self.model(next_state, training=True), axis=1)
+        #     updates = tf.where(done, reward, updates)  # Shape should be [batch_size]
+        #     # Update target Q-values at specified action indices
+        #     print(tf.shape(target_q))
+        #     print(tf.shape(indices))
+        #     print(tf.shape(updates))
+        #     # Now perform the update
+        #     target_q = tf.tensor_scatter_nd_update(target_q, indices, updates)
+        #     loss = self.loss_function(target_q, pred_q)
+
+        # gradients = tape.gradient(loss, self.model.trainable_variables)
+        # self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+        # return loss
