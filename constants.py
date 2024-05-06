@@ -2,20 +2,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from IPython import display
 from enum import Enum
-from collections import namedtuple
 
 # Agent parameters
-MAX_MEMORY = 100_000
+MAXIMUM_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.001         # can change to 0.001
+LEARNING_RATE = 0.001         # can change to 0.001
 EPSILON = 1     # can change to 0
-GAMMA = 0.9
-OFFSET = 20
+DISCOUNT_FACTOR = 0.9
+MOVEMENT_OFFSET = 20
 
 # model parameters
-INPUT_SIZE = 11
-HIDDEN_SIZE = 512 # can change 128, 256, 512
-OUTPUT_SIZE = 3
+INPUT_DIM = 11
+HIDDEN_DIM = 512 # can change 128, 256, 512
+OUTPUT_DIM = 3
 
 MODEL_FILE_NAME = "q_learning_model.pth"
 MODEL_FOLDER_PATH = "./models"
@@ -28,8 +27,8 @@ BLACK = (0,0,0)
 # game parameters
 GRID_SIZE = 20
 SNAKE_SPEED = 60
-WIDTH = 640
-HEIGHT = 480
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
 
 # snake parameters
 class snake_direction(Enum):
@@ -39,7 +38,10 @@ class snake_direction(Enum):
     UP = 'UP'
     DOWN = 'DOWN'
 
-Point = namedtuple('Point', 'x, y')
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 # Plotting the progress of the model training
 plt.ion()

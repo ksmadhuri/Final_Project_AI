@@ -2,7 +2,7 @@ import tensorflow as tf
 import random
 import numpy as np
 from collections import deque
-from game import DeepQNNet, DeepQTraining
+from snake_game_logic import DeepQNNet, DeepQTraining
 import constants as CNST
 
 class Agent:
@@ -12,10 +12,10 @@ class Agent:
         """Initialize the Agent."""
         self.n_games = 0
         self.epsilon = CNST.EPSILON
-        self.discount_factor = CNST.GAMMA
-        self.memory = deque(maxlen=CNST.MAX_MEMORY) # popleft()
-        self.model = DeepQNNet(CNST.INPUT_SIZE, CNST.HIDDEN_SIZE, CNST.OUTPUT_SIZE)
-        self.trainer = DeepQTraining(self.model, learning_rate=CNST.LR, discount_factor=self.discount_factor)
+        self.discount_factor = CNST.DISCOUNT_FACTOR
+        self.memory = deque(maxlen=CNST.MAXIMUM_MEMORY)
+        self.model = DeepQNNet(CNST.INPUT_DIM, CNST.HIDDEN_DIM, CNST.OUTPUT_DIM)
+        self.trainer = DeepQTraining(self.model, learning_rate=CNST.LEARNING_RATE, discount_factor=self.discount_factor)
 
 
     def get_state(self, game):
@@ -28,10 +28,10 @@ class Agent:
             np.array: Array representing the current state.
         """
         head = game.snake[0]
-        point_l = CNST.Point(head.x - CNST.OFFSET, head.y)
-        point_r = CNST.Point(head.x + CNST.OFFSET, head.y)
-        point_u = CNST.Point(head.x, head.y - CNST.OFFSET)
-        point_d = CNST.Point(head.x, head.y + CNST.OFFSET)
+        point_l = CNST.Point(head.x - CNST.MOVEMENT_OFFSET, head.y)
+        point_r = CNST.Point(head.x + CNST.MOVEMENT_OFFSET, head.y)
+        point_u = CNST.Point(head.x, head.y - CNST.MOVEMENT_OFFSET)
+        point_d = CNST.Point(head.x, head.y + CNST.MOVEMENT_OFFSET)
         
         dir_l = game.direction == CNST.snake_direction.LEFT
         dir_r = game.direction == CNST.snake_direction.RIGHT
@@ -83,7 +83,7 @@ class Agent:
             next_state (np.array): Next state.
             done (bool): Whether the episode is done.
         """
-        self.memory.append((state, action, reward, next_state, done)) # popleft if CNST.MAX_MEMORY is reached
+        self.memory.append((state, action, reward, next_state, done)) # popleft if CNST.MAXIMUM_MEMORY is reached
 
     def train_long_memory(self):
         """Train the model using experiences from memory."""

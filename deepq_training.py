@@ -1,5 +1,5 @@
-from agent import Agent
-from game import SnakeGameInterface
+from snake_game_controller import Agent
+from snake_game_logic import SnakeGameInterface
 import constants as CNST
 
 def train():

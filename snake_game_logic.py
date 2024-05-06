@@ -11,12 +11,12 @@ font = pygame.font.SysFont('arial', 25)
 class SnakeGameInterface:
     """Class representing the interface for the Snake game."""
 
-    def __init__(self, width=CNST.WIDTH, height=CNST.HEIGHT):
+    def __init__(self, width=CNST.SCREEN_WIDTH, height=CNST.SCREEN_HEIGHT):
         """Initialize the Snake game interface.
 
         Args:
-            width (int, optional): Width of the game window. Defaults to CNST.WIDTH.
-            height (int, optional): Height of the game window. Defaults to CNST.HEIGHT.
+            width (int, optional): Width of the game window. Defaults to CNST.SCREEN_WIDTH.
+            height (int, optional): Height of the game window. Defaults to CNST.SCREEN_HEIGHT.
         """
         self.width = width
         self.height = height
@@ -266,4 +266,4 @@ class DeepQTraining:
         gradients = tape.gradient(loss, self.model.trainable_variables)
 
         # Apply the gradients to update the model parameters
-        self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables)))
+        self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
