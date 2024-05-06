@@ -6,12 +6,11 @@ def train():
     """_summary_
     """
     plot_scores = []
-    plot_mean_scores = []
     total_score = 0
     record = 0
     agent = Agent()
     game = SnakeGameInterface()
-    while agent.n_games < 150:
+    while agent.n_games < 200:
         # get old state
         state_old = agent.get_state(game)
 
@@ -42,9 +41,7 @@ def train():
 
             plot_scores.append(score)
             total_score += score
-            mean_score = total_score / agent.n_games
-            plot_mean_scores.append(mean_score)
-            CNST.plot(plot_scores, plot_mean_scores)
+            CNST.plot(plot_scores)
 
 
 if __name__ == '__main__':

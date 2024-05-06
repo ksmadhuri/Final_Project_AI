@@ -8,13 +8,13 @@ from collections import namedtuple
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001         # can change to 0.001
-EPSILON = 0     # can change to 0
+EPSILON = 1     # can change to 0
 GAMMA = 0.9
 OFFSET = 20
 
 # model parameters
 INPUT_SIZE = 11
-HIDDEN_SIZE = 256 # can change 128, 256, 512
+HIDDEN_SIZE = 512 # can change 128, 256, 512
 OUTPUT_SIZE = 3
 
 MODEL_FILE_NAME = "q_learning_model.pth"
@@ -45,21 +45,19 @@ Point = namedtuple('Point', 'x, y')
 # plotting the progress of the model training
 plt.ion()
 
-def plot(scores, mean_scores):
+def plot(scores):
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.clf()
     sns.set_style("whitegrid") 
     
     plt.plot(scores, label='Scores', color='blue')
-    plt.plot(mean_scores, label='Mean Scores', color='orange')
     
     plt.title('Training Progress')
     plt.xlabel('Number of Games')
     plt.ylabel('Score')
     
     plt.text(len(scores)-1, round(scores[-1], 4), str(round(scores[-1], 4)))
-    plt.text(len(mean_scores)-1, round(mean_scores[-1], 4), str(round(mean_scores[-1], 4)))
 
     plt.legend()
 
