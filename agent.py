@@ -4,7 +4,6 @@ import numpy as np
 from collections import deque
 from game import DeepQNNet, DeepQTraining
 import constants as CNST
-import tensorflow as tf
 
 class Agent:
     """_summary_
@@ -114,26 +113,24 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        """Decide on an action based on the current state using an epsilon-greedy strategy.
+        """_summary_
 
         Args:
-            state (array): The current state of the game environment.
+            state (_type_): _description_
 
         Returns:
-            list: A one-hot encoded list representing the action to take.
+            _type_: _description_
         """
-        # Adjust epsilon based on the number of games played: tradeoff exploration / exploitation
+        # random moves: tradeoff exploration / exploitation
         self.epsilon = 80 - self.n_games
-        final_move = [0, 0, 0]
+        final_move = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
-            # Exploration: random move
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
-            # Exploitation: choose the best move based on the model's prediction
-            state_tensor = tf.convert_to_tensor([state], dtype=tf.float32)  # Convert state to tensor and add batch dimension
-            prediction = self.model(state_tensor)  # Get model predictions
-            move = tf.argmax(prediction[0]).numpy()  # Get the index of the max value
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model(state0)
+            move = torch.argmax(prediction).item()
             final_move[move] = 1
 
         return final_move
